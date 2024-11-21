@@ -8,6 +8,7 @@ import com.parkit.parkingsystem.model.Ticket;
 import com.parkit.parkingsystem.service.ParkingService;
 import com.parkit.parkingsystem.util.InputReaderUtil;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,10 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Date;
 
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ParkingServiceTest {
 
+    private static final String VEHICULE_REG_NUMBER_TEST = "ABCDEF";
     private static ParkingService parkingService;
 
     @Mock
@@ -29,33 +32,172 @@ public class ParkingServiceTest {
     private static ParkingSpotDAO parkingSpotDAO;
     @Mock
     private static TicketDAO ticketDAO;
-
+    
+    
     @BeforeEach
     private void setUpPerTest() {
         try {
-            when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn("ABCDEF");
-
-            ParkingSpot parkingSpot = new ParkingSpot(1, ParkingType.CAR,false);
-            Ticket ticket = new Ticket();
-            ticket.setInTime(new Date(System.currentTimeMillis() - (60*60*1000)));
-            ticket.setParkingSpot(parkingSpot);
-            ticket.setVehicleRegNumber("ABCDEF");
-            when(ticketDAO.getTicket(anyString())).thenReturn(ticket);
-            when(ticketDAO.updateTicket(any(Ticket.class))).thenReturn(true);
-
-            when(parkingSpotDAO.updateParking(any(ParkingSpot.class))).thenReturn(true);
-
             parkingService = new ParkingService(inputReaderUtil, parkingSpotDAO, ticketDAO);
         } catch (Exception e) {
             e.printStackTrace();
-            throw  new RuntimeException("Failed to set up test mock objects");
+            throw new RuntimeException("Failed to initialize parkingService");
         }
     }
 
-    @Test
-    public void processExitingVehicleTest(){
-        parkingService.processExitingVehicle();
-        verify(parkingSpotDAO, Mockito.times(1)).updateParking(any(ParkingSpot.class));
+    @Nested
+    class ProcessExitingVehicleTests {
+        
+        private void commonExitingVehicle (int nbTicket, boolean isUpdateTicket) {
+            try {
+                // parking space 1 is occupied.
+                ParkingSpot parkingSpot = new ParkingSpot(1, ParkingType.CAR, false);
+    
+                // ticket for one hour of parking on this parking space.
+                Ticket ticket = new Ticket();
+                ticket.setInTime(new Date(System.currentTimeMillis() - (60*60*1000)));
+                ticket.setParkingSpot(parkingSpot);
+    
+                // mock configuration
+                when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn(VEHICULE_REG_NUMBER_TEST);
+                when(ticketDAO.getTicket(anyString())).thenReturn(ticket);
+                when(ticketDAO.getNbTicket(VEHICULE_REG_NUMBER_TEST)).thenReturn(nbTicket);
+                when(ticketDAO.updateTicket(any(Ticket.class))).thenReturn(isUpdateTicket);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Failed in commonExitingVehicle");
+            }
+        }
+        
+        @Test
+        public void processExitingVehicle() {
+            // given : the vehicle is present, there is a ticket and its parking space is occupied.
+            commonExitingVehicle(1, true) ;
+            when(parkingSpotDAO.updateParking(any(ParkingSpot.class))).thenReturn(true);
+    
+            // when : the vehicle leaves.
+            parkingService.processExitingVehicle();
+    
+            // then : updateTicket and updateParking must have been called once.
+            verify(ticketDAO, Mockito.times(1)).updateTicket(any(Ticket.class));
+            verify(parkingSpotDAO, Mockito.times(1)).updateParking(any(ParkingSpot.class));
+        }
+    
+        @Test
+        public void processExitingVehicleUnableUpdate() {
+            // given : the vehicle is present, there is a ticket and its parking space is occupied. But updating the ticket will not work.
+           commonExitingVehicle(0, false) ;
+    
+           // when : the vehicle leaves.
+           parkingService.processExitingVehicle();
+    
+           // then : 
+           // updateTicket must have been called once.
+           verify(ticketDAO,  Mockito.times(1)).updateTicket(any(Ticket.class));
+           // updateParking should never be called.
+           verify(parkingSpotDAO, Mockito.never()).updateParking(any(ParkingSpot.class));
+        }
     }
 
+    @Nested
+    class ProcessIncomingVehicleTests {
+        
+        private void commonIncomingVehicle(int nbTicket) {
+            try {
+                when(inputReaderUtil.readSelection()).thenReturn(1);
+                when(inputReaderUtil.readVehicleRegistrationNumber()).thenReturn(VEHICULE_REG_NUMBER_TEST);
+                when(ticketDAO.getNbTicket(VEHICULE_REG_NUMBER_TEST)).thenReturn(nbTicket);
+                when(ticketDAO.saveTicket(any(Ticket.class))).thenReturn(true);
+                when(parkingSpotDAO.getNextAvailableSlot(any(ParkingType.class))).thenReturn(1);
+                when(parkingSpotDAO.updateParking(any(ParkingSpot.class))).thenReturn(true);
+            } catch (Exception e) {
+               fail("Failed in CommonIncomingVehicle");
+            }
+        }
+
+        @Test
+        public void processIncomingVehicle() {
+            // given : configuration of mocks for vehicle entry test. No previous ticket, only one current ticket, no discount.
+            commonIncomingVehicle(1);
+              
+            // when : the vehicle enters.
+            parkingService.processIncomingVehicle();
+              
+            // then : saveTicket and updateParking must have been called once.
+            verify(ticketDAO, Mockito.times(1)).saveTicket(any(Ticket.class)); 
+            verify(parkingSpotDAO, Mockito.times(1)).updateParking(any(ParkingSpot.class)); 
+        }
+  
+        @Test
+        public void processIncomingVehicleWithDiscount(){
+            // given : configuration of mocks for vehicle entry test. One previous ticket + one current ticket => we make discount.
+            commonIncomingVehicle(2);
+            
+            // when : the vehicle enters.
+            parkingService.processIncomingVehicle();
+                   
+            // then : saveTicket and updateParking must have been called once.
+            verify(ticketDAO, Mockito.times(1)).saveTicket(any(Ticket.class)); 
+            verify(parkingSpotDAO, Mockito.times(1)).updateParking(any(ParkingSpot.class)); 
+        }
+    }
+    
+    
+    @Nested
+    class GetNextParkingNumberTests {
+
+        private void commonGetNextParkingNumber (int vehiculeTypeChoice) {
+            try {
+                when(inputReaderUtil.readSelection()).thenReturn(vehiculeTypeChoice);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Failed in commonGetNextParkingNumber");
+            }
+        }
+   
+        @Test
+        public void GetNextParkingNumberIfAvailable() {
+           // given : 
+           // configuration of mocks for testing the next free parking space. Input choice = a car. 
+           commonGetNextParkingNumber (1);
+           // with parking number 1.
+           when(parkingSpotDAO.getNextAvailableSlot(any(ParkingType.class))).thenReturn(1);
+       
+          // when : to get the next free parking space.
+          ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
+
+          // then :
+          assertNotNull(parkingSpot, "parkingSpot must not be null");
+          assertEquals(1, parkingSpot.getId(), "the parking space id must be equal to 1");
+          assertEquals(ParkingType.CAR, parkingSpot.getParkingType(), "the parking type must be a car");
+          assertTrue(parkingSpot.isAvailable(), "the parking space must be available");
+       }
+   
+       @Test
+       public void GetNextParkingNumberIfAvailableParkingNumberNotFound() {
+           // given : 
+           // configuration of mocks for testing the next free parking space. Input choice = a bike. 
+           commonGetNextParkingNumber (2);    
+           // with no parking number found.
+           when(parkingSpotDAO.getNextAvailableSlot(any(ParkingType.class))).thenReturn(-1);
+    
+           // when : to get the next free parking space.
+           ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
+    
+           // then :
+           assertNull(parkingSpot, "parkingSpot must be null");
+       }
+   
+       @Test
+       public void GetNextParkingNumberIfAvailableParkingNumberWrongArgument() {
+           // given : 
+           // configuration of mocks for testing the next free parking space. Input choice = wrong choice.For a wrong.
+           commonGetNextParkingNumber (3);    
+    
+           // when : to get the next free parking space.
+           ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
+    
+           // then :
+           assertNull(parkingSpot, "parkingSpot must be null");
+       }
+    }
 }

@@ -19,8 +19,12 @@ public class ParkingService {
 
     private InputReaderUtil inputReaderUtil;
     private ParkingSpotDAO parkingSpotDAO;
-    private  TicketDAO ticketDAO;
+    private TicketDAO ticketDAO;
 
+    private boolean isDiscount (String vehicleRegNumber) {
+        return ticketDAO.getNbTicket(vehicleRegNumber) > 1;
+    }
+    
     public ParkingService(InputReaderUtil inputReaderUtil, ParkingSpotDAO parkingSpotDAO, TicketDAO ticketDAO){
         this.inputReaderUtil = inputReaderUtil;
         this.parkingSpotDAO = parkingSpotDAO;
@@ -32,7 +36,6 @@ public class ParkingService {
             ParkingSpot parkingSpot = getNextParkingNumberIfAvailable();
             if(parkingSpot !=null && parkingSpot.getId() > 0){
                 String vehicleRegNumber = getVehichleRegNumber();
-                boolean discount = ticketDAO.getNbTicket(vehicleRegNumber) > 0;
                 parkingSpot.setAvailable(false);
                 parkingSpotDAO.updateParking(parkingSpot);//allot this parking space and mark it's availability as false
                 Date inTime = new Date();
@@ -46,7 +49,8 @@ public class ParkingService {
                 ticket.setOutTime(null);
                 ticketDAO.saveTicket(ticket);
                 System.out.println("Generated Ticket and saved in DB");
-                if (discount)
+                // warning for discount : > 1 because there is always at least one ticket, the current ticket.
+                if (isDiscount(vehicleRegNumber))
                     System.out.println("Nice to see you again! To thank you for your loyalty, we are happy to offer you a 5% discount");
                 System.out.println("Please park your vehicle in spot number:"+parkingSpot.getId());
                 System.out.println("Recorded in-time for vehicle number:"+vehicleRegNumber+" is:"+inTime);
@@ -102,11 +106,11 @@ public class ParkingService {
     public void processExitingVehicle() {
         try{
             String vehicleRegNumber = getVehichleRegNumber();
-            boolean discount = ticketDAO.getNbTicket(vehicleRegNumber) > 0;
             Ticket ticket = ticketDAO.getTicket(vehicleRegNumber);
             Date outTime = new Date();
             ticket.setOutTime(outTime);
-            fareCalculatorService.calculateFare(ticket, discount);
+            // warning for discount : > 1 because there is always at least one ticket, the current ticket.
+            fareCalculatorService.calculateFare(ticket, isDiscount(vehicleRegNumber));
             if(ticketDAO.updateTicket(ticket)) {
                 ParkingSpot parkingSpot = ticket.getParkingSpot();
                 parkingSpot.setAvailable(true);
