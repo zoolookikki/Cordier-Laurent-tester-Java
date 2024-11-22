@@ -18,7 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Date;
 
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
+//import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ParkingServiceTest {
@@ -110,7 +111,8 @@ public class ParkingServiceTest {
                 when(parkingSpotDAO.getNextAvailableSlot(any(ParkingType.class))).thenReturn(1);
                 when(parkingSpotDAO.updateParking(any(ParkingSpot.class))).thenReturn(true);
             } catch (Exception e) {
-               fail("Failed in CommonIncomingVehicle");
+                e.printStackTrace();
+                throw new RuntimeException("Failed in CommonIncomingVehicle");
             }
         }
 
@@ -166,10 +168,18 @@ public class ParkingServiceTest {
           ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
 
           // then :
-          assertNotNull(parkingSpot, "parkingSpot must not be null");
-          assertEquals(1, parkingSpot.getId(), "the parking space id must be equal to 1");
-          assertEquals(ParkingType.CAR, parkingSpot.getParkingType(), "the parking type must be a car");
-          assertTrue(parkingSpot.isAvailable(), "the parking space must be available");
+/*
+          assertNotNull(parkingSpot, "The parkingSpot must not be null");
+          assertEquals(1, parkingSpot.getId(), "The parking space id must be equal to 1");
+          assertEquals(ParkingType.CAR, parkingSpot.getParkingType(), "The parking type must be a car");
+          assertTrue(parkingSpot.isAvailable(), "The parking space must be available");
+*/
+//        assertThat(parkingSpot).isNotNull().extracting(ParkingSpot::getId, ParkingSpot::getParkingType, ParkingSpot::isAvailable).containsExactly(1, ParkingType.CAR, true);          
+
+          assertThat(parkingSpot).as("The parkingSpot must not be null").isNotNull();
+          assertThat(parkingSpot.getId()).as("The parking space id must be equal to 1").isEqualTo(1);
+          assertThat(parkingSpot.getParkingType()).as("The parking type must be a car").isEqualTo(ParkingType.CAR);
+          assertThat(parkingSpot.isAvailable()).as("The parking space must be available").isTrue();          
        }
    
        @Test
@@ -184,7 +194,7 @@ public class ParkingServiceTest {
            ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
     
            // then :
-           assertNull(parkingSpot, "parkingSpot must be null");
+           assertThat(parkingSpot).as("The parkingSpot must be null").isNull();
        }
    
        @Test
@@ -197,7 +207,14 @@ public class ParkingServiceTest {
            ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
     
            // then :
-           assertNull(parkingSpot, "parkingSpot must be null");
+           assertThat(parkingSpot).as("The parkingSpot must be null").isNull();
        }
+    }
+    
+    @Test
+    public void constructorWithNullArguments() {
+        assertThatThrownBy(() -> new ParkingService(null, parkingSpotDAO, ticketDAO)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid argument in ParkingService");
+        assertThatThrownBy(() -> new ParkingService(inputReaderUtil, null, ticketDAO)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid argument in ParkingService");
+        assertThatThrownBy(() -> new ParkingService(inputReaderUtil, parkingSpotDAO, null)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid argument in ParkingService");
     }
 }

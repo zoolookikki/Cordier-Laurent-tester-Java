@@ -29,7 +29,7 @@ public class FareCalculatorService {
         return MonetaryUtil.round(result);
     }
     
-    // separated for easy reading
+    // separated into several instructions for easier reading.
     private double calculateTotalPrice (Ticket ticket, double decimalHour, boolean discount) {
         ParkingType parkingType = ticket.getParkingSpot().getParkingType();
         double hourlyRate = getHourlyRate (parkingType, discount);
@@ -37,8 +37,16 @@ public class FareCalculatorService {
     }
     
     public void calculateFare(Ticket ticket, boolean discount){
-        if( (ticket.getOutTime() == null) || (ticket.getOutTime().before(ticket.getInTime())) ){
-            throw new IllegalArgumentException("Out time provided is incorrect:"+ticket.getOutTime().toString());
+        if (ticket == null) {
+            throw new IllegalArgumentException("Ticket cannot be null");
+        }
+        if ((ticket.getOutTime() == null) || (ticket.getInTime() == null)) {
+            // do not display the time because ticket is null.
+            throw new IllegalArgumentException("Out time or in time is incorrect"); // +ticket.getOutTime().toString()
+        }
+        if (ticket.getOutTime().before(ticket.getInTime())){
+            // do not display the time because ticket is null
+            throw new IllegalArgumentException("Out time is before in time"); 
         }
 
         double decimalHour = (double) (ticket.getOutTime().getTime() - ticket.getInTime().getTime()) / (60 * 60 * 1000);

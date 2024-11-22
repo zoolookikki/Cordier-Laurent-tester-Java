@@ -26,6 +26,9 @@ public class ParkingService {
     }
     
     public ParkingService(InputReaderUtil inputReaderUtil, ParkingSpotDAO parkingSpotDAO, TicketDAO ticketDAO){
+        if ((inputReaderUtil == null) || (parkingSpotDAO == null) || (ticketDAO == null)) {
+            throw new IllegalArgumentException("Invalid argument in ParkingService");
+        }
         this.inputReaderUtil = inputReaderUtil;
         this.parkingSpotDAO = parkingSpotDAO;
         this.ticketDAO = ticketDAO;
