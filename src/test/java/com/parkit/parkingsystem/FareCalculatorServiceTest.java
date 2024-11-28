@@ -6,12 +6,12 @@ import com.parkit.parkingsystem.model.ParkingSpot;
 import com.parkit.parkingsystem.model.Ticket;
 import com.parkit.parkingsystem.service.FareCalculatorService;
 import com.parkit.parkingsystem.util.MonetaryUtil;
+import com.parkit.parkingsystem.util.DateUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
-//import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.Date;
@@ -31,34 +31,6 @@ public class FareCalculatorServiceTest {
         ticket = new Ticket();
     }
 
-    private Date getDateNow() {
-        Date result;
-        result = new Date();
-        return result ;
-    }
-    
-    private Date getPastDate(int minutes) {
-        if (minutes <= 0) {
-            throw new IllegalArgumentException("invalid argument");
-        }
-
-        Date result ;
-        result = getDateNow() ;
-        result.setTime(System.currentTimeMillis() - (minutes * 60 * 1000));
-        return result ;
-    }
-    
-    private Date getFutureDate(int minutes) {
-        if (minutes <= 0) {
-            throw new IllegalArgumentException("invalid argument");
-        }
-
-        Date result ;
-        result = getDateNow() ;
-        result.setTime(System.currentTimeMillis() + (minutes * 60 * 1000));
-        return result ;
-    }
-    
     private void makeTicket(int parkingSpotId, ParkingType parkingType, Date inTime, Date outTime) {
         ParkingSpot parkingSpot = new ParkingSpot(parkingSpotId, parkingType, false);
 
@@ -69,14 +41,14 @@ public class FareCalculatorServiceTest {
     
     @Test
     public void calculateFareCar(){
-        makeTicket (1, ParkingType.CAR, getPastDate(60), getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(60), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(Fare.CAR_RATE_PER_HOUR);
     }
 
     @Test
     public void calculateFareBike(){
-        makeTicket (1, ParkingType.BIKE, getPastDate(60), getDateNow()) ;
+        makeTicket (1, ParkingType.BIKE, DateUtil.getPastDate(60), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(Fare.BIKE_RATE_PER_HOUR);
     }
@@ -85,7 +57,7 @@ public class FareCalculatorServiceTest {
 /*    
     @Test
     public void calculateFareUnkownType(){
-        makeTicket (1, null, getPastDate(60), getDateNow()) ;
+        makeTicket (1, null, DateUtil.getPastDate(60), DateUtil.getDateNow()) ;
         assertThatThrownBy(() -> fareCalculatorService.calculateFare(ticket)).isInstanceOf(NullPointerException.class);
     }
 */
@@ -93,7 +65,7 @@ public class FareCalculatorServiceTest {
     @Test
     // same for CAR.
     public void calculateFareBikeWithFutureInTime(){
-        makeTicket (1, ParkingType.BIKE, getFutureDate(60), getDateNow()) ;
+        makeTicket (1, ParkingType.BIKE, DateUtil.getFutureDate(60), DateUtil.getDateNow()) ;
         assertThatThrownBy(() -> fareCalculatorService.calculateFare(ticket)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Out time is before in time");
     }
     
@@ -101,7 +73,7 @@ public class FareCalculatorServiceTest {
     // same for CAR.
     public void calculateFareBikeWithLessThanOneHourParkingTime(){
         // 45 minutes parking time should give 3/4th parking fare
-        makeTicket (1, ParkingType.BIKE, getPastDate(45), getDateNow()) ;
+        makeTicket (1, ParkingType.BIKE, DateUtil.getPastDate(45), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(MonetaryUtil.round(0.75 * Fare.BIKE_RATE_PER_HOUR));    
     }
@@ -109,7 +81,7 @@ public class FareCalculatorServiceTest {
     @Test
     public void calculateFareCarWithLessThanOneHourParkingTime(){
         // 45 minutes parking time should give 3/4th parking fare
-        makeTicket (1, ParkingType.CAR, getPastDate(45), getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(45), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(MonetaryUtil.round(0.75 * Fare.CAR_RATE_PER_HOUR));    
     }
@@ -117,7 +89,7 @@ public class FareCalculatorServiceTest {
     @Test
     public void calculateFareCarWithMoreThanADayParkingTime(){
         // 24 hours parking time should give 24 * parking fare per hour
-        makeTicket (1, ParkingType.CAR, getPastDate(24 * 60), getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(24 * 60), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(MonetaryUtil.round(24 * Fare.CAR_RATE_PER_HOUR));    
      }
@@ -127,7 +99,7 @@ public class FareCalculatorServiceTest {
     @DisplayName("For a car, parking is free for periods of less than 30 minutes")
     public void calculateFareCarWithLessThan30minutesParkingTime(){
         // 29 minutes parking time should be free
-        makeTicket (1, ParkingType.CAR, getPastDate(29), getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(29), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(0.0);
     }
@@ -136,7 +108,7 @@ public class FareCalculatorServiceTest {
     @DisplayName("For a bike, parking is free for periods of less than 30 minutes")
     public void calculateFareBikeWithLessThan30minutesParkingTime(){
         // 29 minutes parking time should be free
-        makeTicket (1, ParkingType.BIKE, getPastDate(29), getDateNow()) ;
+        makeTicket (1, ParkingType.BIKE, DateUtil.getPastDate(29), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket);
         assertThat(ticket.getPrice()).isEqualTo(0.0);
     }
@@ -144,7 +116,7 @@ public class FareCalculatorServiceTest {
     @Test
     @DisplayName("For a car, discount for returning users")
     public void calculateFareCarWithDiscount() {
-        makeTicket (1, ParkingType.CAR, getPastDate(60), getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(60), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket, true);
         assertThat(ticket.getPrice()).isEqualTo(MonetaryUtil.round(Fare.RECURRING_USER_DISCOUNT * Fare.CAR_RATE_PER_HOUR));        
     }
@@ -152,7 +124,7 @@ public class FareCalculatorServiceTest {
     @Test
     @DisplayName("For a bike, discount for returning users")
     public void calculateFareBikeWithDiscount() {
-        makeTicket (1, ParkingType.BIKE, getPastDate(60), getDateNow()) ;
+        makeTicket (1, ParkingType.BIKE, DateUtil.getPastDate(60), DateUtil.getDateNow()) ;
         fareCalculatorService.calculateFare(ticket, true);
         assertThat(ticket.getPrice()).isEqualTo(MonetaryUtil.round(Fare.RECURRING_USER_DISCOUNT * Fare.BIKE_RATE_PER_HOUR));
     }
@@ -166,14 +138,14 @@ public class FareCalculatorServiceTest {
     @Test
     @DisplayName("Ticket outime is null")
     public void calculateFareWithNullOutTime() {
-        makeTicket (1, ParkingType.CAR, getPastDate(60), null) ;
+        makeTicket (1, ParkingType.CAR, DateUtil.getPastDate(60), null) ;
         assertThatThrownBy(() -> fareCalculatorService.calculateFare(ticket)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Out time or in time is incorrect");
     }
     
     @Test
     @DisplayName("Ticket intime is null")
     public void calculateFareWithNullInTime() {
-        makeTicket (1, ParkingType.CAR, null, getDateNow()) ;
+        makeTicket (1, ParkingType.CAR, null, DateUtil.getDateNow()) ;
         ticket.setInTime(null);
         assertThatThrownBy(() -> fareCalculatorService.calculateFare(ticket)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Out time or in time is incorrect");
     }

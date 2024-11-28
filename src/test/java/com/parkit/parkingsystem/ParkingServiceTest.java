@@ -8,6 +8,7 @@ import com.parkit.parkingsystem.model.Ticket;
 import com.parkit.parkingsystem.service.ParkingService;
 import com.parkit.parkingsystem.util.InputReaderUtil;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Date;
 
 import static org.mockito.Mockito.*;
-//import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,6 +70,7 @@ public class ParkingServiceTest {
         }
         
         @Test
+        @DisplayName("A customer vehicle leaves the parking")
         public void processExitingVehicle() {
             // given : the vehicle is present, there is a ticket and its parking space is occupied.
             commonExitingVehicle(1, true) ;
@@ -84,6 +85,7 @@ public class ParkingServiceTest {
         }
     
         @Test
+        @DisplayName("A customer vehicle leaves the parking but updating the ticket will not work")
         public void processExitingVehicleUnableUpdate() {
             // given : the vehicle is present, there is a ticket and its parking space is occupied. But updating the ticket will not work.
            commonExitingVehicle(0, false) ;
@@ -117,6 +119,7 @@ public class ParkingServiceTest {
         }
 
         @Test
+        @DisplayName("A customer vehicle enters in the parking")
         public void processIncomingVehicle() {
             // given : configuration of mocks for vehicle entry test. No previous ticket, only one current ticket, no discount.
             commonIncomingVehicle(1);
@@ -130,6 +133,7 @@ public class ParkingServiceTest {
         }
   
         @Test
+        @DisplayName("An already customer vehicle enters the parking again")
         public void processIncomingVehicleWithDiscount(){
             // given : configuration of mocks for vehicle entry test. One previous ticket + one current ticket => we make discount.
             commonIncomingVehicle(2);
@@ -157,6 +161,7 @@ public class ParkingServiceTest {
         }
    
         @Test
+        @DisplayName("Testing the next free parking space : ok")
         public void GetNextParkingNumberIfAvailable() {
            // given : 
            // configuration of mocks for testing the next free parking space. Input choice = a car. 
@@ -168,14 +173,6 @@ public class ParkingServiceTest {
           ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
 
           // then :
-/*
-          assertNotNull(parkingSpot, "The parkingSpot must not be null");
-          assertEquals(1, parkingSpot.getId(), "The parking space id must be equal to 1");
-          assertEquals(ParkingType.CAR, parkingSpot.getParkingType(), "The parking type must be a car");
-          assertTrue(parkingSpot.isAvailable(), "The parking space must be available");
-*/
-//        assertThat(parkingSpot).isNotNull().extracting(ParkingSpot::getId, ParkingSpot::getParkingType, ParkingSpot::isAvailable).containsExactly(1, ParkingType.CAR, true);          
-
           assertThat(parkingSpot).as("The parkingSpot must not be null").isNotNull();
           assertThat(parkingSpot.getId()).as("The parking space id must be equal to 1").isEqualTo(1);
           assertThat(parkingSpot.getParkingType()).as("The parking type must be a car").isEqualTo(ParkingType.CAR);
@@ -183,6 +180,7 @@ public class ParkingServiceTest {
        }
    
        @Test
+       @DisplayName("Testing the next free parking space : not ok")
        public void GetNextParkingNumberIfAvailableParkingNumberNotFound() {
            // given : 
            // configuration of mocks for testing the next free parking space. Input choice = a bike. 
@@ -198,11 +196,12 @@ public class ParkingServiceTest {
        }
    
        @Test
+       @DisplayName("Testing the next free parking space : wrong user choice")
        public void GetNextParkingNumberIfAvailableParkingNumberWrongArgument() {
            // given : 
            // configuration of mocks for testing the next free parking space. Input choice = wrong choice.For a wrong.
            commonGetNextParkingNumber (3);    
-    
+
            // when : to get the next free parking space.
            ParkingSpot parkingSpot = parkingService.getNextParkingNumberIfAvailable();
     
@@ -212,6 +211,7 @@ public class ParkingServiceTest {
     }
     
     @Test
+    @DisplayName("Testing class ParkingService with null arguments")
     public void constructorWithNullArguments() {
         assertThatThrownBy(() -> new ParkingService(null, parkingSpotDAO, ticketDAO)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid argument in ParkingService");
         assertThatThrownBy(() -> new ParkingService(inputReaderUtil, null, ticketDAO)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Invalid argument in ParkingService");
