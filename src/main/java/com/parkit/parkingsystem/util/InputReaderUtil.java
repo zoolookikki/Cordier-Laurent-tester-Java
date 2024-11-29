@@ -4,10 +4,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
+import java.io.InputStreamReader;
 
 public class InputReaderUtil {
 
-    private static Scanner scan = new Scanner(System.in);
+     // from java 10 only because constructor not exist.
+//    private static Scanner scan = new Scanner(System.in, StandardCharsets.UTF_8);
+    private static Scanner scan = new Scanner(new InputStreamReader(System.in, StandardCharsets.UTF_8));    
     private static final Logger logger = LogManager.getLogger("InputReaderUtil");
 
     public int readSelection() {

@@ -12,10 +12,19 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 
+/**
+ * Allows you to initialize each integration test case.
+ * 
+ * @author Cordier Laurent
+ * @version 1.1
+ */
 public class DataBasePrepareService {
 
     DataBaseTestConfig dataBaseTestConfig = new DataBaseTestConfig();
 
+    /**
+    * Returns the database to its initial state.
+    */
     public void clearDataBaseEntries(){
         Connection connection = null;
         try{
@@ -34,6 +43,14 @@ public class DataBasePrepareService {
         }
     }
 
+    /**
+    * To change the entry date of a ticket.
+    * 
+    * @param ticket The ticket to modifiy.
+    * @param inTime The new date to set as the ticket's entry date.
+    * @return true if the ticket's entry date was successfully updated,
+    *         false if an exception occurred or the update failed.
+    */
     public boolean updateOneTicketInTime(Ticket ticket, Date inTime) {
         if (ticket == null || ticket.getId() <= 0 || inTime == null) {
             throw new IllegalArgumentException("Invalid argument : Ticket or inTime cannot be null or invalid");
@@ -58,6 +75,10 @@ public class DataBasePrepareService {
         }
     }
     
+    /**
+    * Sets all parking spots to not available in the database.
+    * 
+    */
     public void setParkingFull() {
         Connection connection = null;
         try{
@@ -72,6 +93,14 @@ public class DataBasePrepareService {
         }
     }
     
+    /**
+    * Inserts a pre-configured ticket for a specific vehicle registration number into the database.
+    * 
+    * @param vehicleRegNumber The registration number of the vehicle. Must not be null or empty.
+    * @return true if the ticket was successfully inserted into the database,
+    *         false in case of an exception.
+    * @throws IllegalArgumentException if the provided vehicle registration number is null or empty.    
+    */
     public boolean putOldTicket(String vehicleRegNumber) {
         if (vehicleRegNumber == null || vehicleRegNumber.isEmpty()) {
             throw new IllegalArgumentException("Invalid argument : vehiculeRegNumber cannot be null or empty");
